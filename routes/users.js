@@ -143,4 +143,22 @@ router.delete("/update/", async (req, res) => {
   }
 });
 
+router.delete("/:token", async (req, res) => {
+  try {
+    const token = req.params.token;
+
+    const response = await User.deleteOne({ token });
+    if (response.deletedCount === 0) {
+      return res.status(404).json({ result: false, error: "User not found" });
+    }
+    res.json({ result: true, response });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      result: false,
+      error: `Le catch de la requête renvoie une erreur ${error}`,
+    });
+  }
+});
+
 module.exports = router;
