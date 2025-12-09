@@ -79,4 +79,86 @@ router.post("/signin", (req, res) => {
   });
 });
 
+// route POST pour modifier un champ de User (addresses et username)
+router.post("/update/", async (req, res) => {
+  try {
+    const filter = req.body;
+    const update = req.query;
+
+    if (Object.hasOwn(update, "addresses")) {
+      const fetchUser = await User.findOne(filter);
+      const fetchedAddresses = fetchUser.addresses;
+      if (fetchedAddresses.some((addresse) => addresse === update.addresses)) {
+        return res.json({ result: false, error: "Address already exists" });
+      }
+      const insert = [...fetchedAddresses, update.addresses];
+      const data = await User.findOneAndUpdate(
+        filter,
+        { addresses: insert },
+        { new: true }
+      );
+      const { addresses } = data;
+      res.json({ result: true, addresses });
+    } else {
+      const data = await User.findOneAndUpdate(filter, update, { new: true });
+      const { username } = data;
+      res.json({ result: true, username });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      result: false,
+      error: `Le catch de la requête renvoie une erreur ${error}`,
+    });
+  }
+});
+
+// route DELETE pour supprimer une adresse d'un user
+router.delete("/update/", async (req, res) => {
+  try {
+    const filter = req.body;
+    const addresseToDelete = Object.values(req.query)[0];
+
+    const fetchUser = await User.findOne(filter);
+    const fetchedAddresses = fetchUser.addresses;
+    if (!fetchedAddresses.some((addresse) => addresse === addresseToDelete)) {
+      return res.json({ result: false, error: "Address doesn't exists" });
+    }
+    const insert = fetchedAddresses.filter(
+      (addresse) => addresse !== addresseToDelete
+    );
+    const data = await User.findOneAndUpdate(
+      filter,
+      { addresses: insert },
+      { new: true }
+    );
+    const { addresses } = data;
+    res.json({ result: true, addresses });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      result: false,
+      error: `Le catch de la requête renvoie une erreur ${error}`,
+    });
+  }
+});
+
+router.delete("/:token", async (req, res) => {
+  try {
+    const token = req.params.token;
+
+    const response = await User.deleteOne({ token });
+    if (response.deletedCount === 0) {
+      return res.status(404).json({ result: false, error: "User not found" });
+    }
+    res.json({ result: true, response });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      result: false,
+      error: `Le catch de la requête renvoie une erreur ${error}`,
+    });
+  }
+});
+
 module.exports = router;
