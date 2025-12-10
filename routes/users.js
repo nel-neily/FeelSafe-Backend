@@ -159,18 +159,25 @@ router.post("/auto-signin/:token", async (req, res) => {
 // route POST pour modifier un champ de User (addresses et username)
 router.post("/update/", async (req, res) => {
   try {
-    const filter = req.body;
+    const filter = req.body.email;
+    const coords = req.body.coords;
     const update = req.query;
-
     if (Object.hasOwn(update, "addresses")) {
-      const fetchUser = await User.findOne(filter);
+      const fetchUser = await User.findOne({ email: filter });
       const fetchedAddresses = fetchUser.addresses;
-      if (fetchedAddresses.some((addresse) => addresse === update.addresses)) {
+      if (
+        fetchedAddresses.some(
+          (addresse) => addresse.address === update.addresses
+        )
+      ) {
         return res.json({ result: false, error: "Address already exists" });
       }
-      const insert = [...fetchedAddresses, update.addresses];
+      const insert = [
+        ...fetchedAddresses,
+        { address: update.addresses, coords },
+      ];
       const data = await User.findOneAndUpdate(
-        filter,
+        { email: filter },
         { addresses: insert },
         { new: true }
       );
@@ -198,11 +205,18 @@ router.delete("/update/", async (req, res) => {
 
     const fetchUser = await User.findOne(filter);
     const fetchedAddresses = fetchUser.addresses;
-    if (!fetchedAddresses.some((addresse) => addresse === addresseToDelete)) {
+    if (
+      !fetchedAddresses.some(
+        (addresse) => addresse.address === addresseToDelete
+      )
+    ) {
       return res.json({ result: false, error: "Address doesn't exists" });
     }
+    const findAddress = fetchedAddresses.find(
+      (addresse) => addresse.address === addresseToDelete
+    );
     const insert = fetchedAddresses.filter(
-      (addresse) => addresse !== addresseToDelete
+      (addresse) => addresse !== findAddress
     );
     const data = await User.findOneAndUpdate(
       filter,
