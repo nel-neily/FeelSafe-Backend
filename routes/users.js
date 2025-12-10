@@ -121,6 +121,31 @@ router.post("/update/", async (req, res) => {
   }
 });
 
+// route POST pour login automatique
+router.post("/auto-signin/:token", async (req, res) => {
+  const tokenFromParams = req.params.token;
+
+  try {
+    const response = await User.findOne({ token: tokenFromParams });
+    if (!response) {
+      res
+        .status(404)
+        .json({ result: false, error: "Token not matching any user" });
+    }
+    const { email, username, token, addresses } = response;
+    res.status(200).json({
+      result: true,
+      user: { email, username, token, addresses },
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      result: false,
+      error: `Le catch de la requête renvoie une erreur ${error}`,
+    });
+  }
+});
+
 // route DELETE pour supprimer une adresse d'un user
 router.delete("/update/", async (req, res) => {
   try {
