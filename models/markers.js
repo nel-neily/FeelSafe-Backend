@@ -5,7 +5,7 @@ const markerSchema = new mongoose.Schema({
   longitude: Number,
   color: String,
   riskType: String,
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "users" }, // référence à l'utilisateur
+  users: { type: mongoose.Schema.Types.ObjectId, ref: "users" }, // référence à l'utilisateur
   createdAt: { type: Date, default: Date.now() }, // date de création
 });
 

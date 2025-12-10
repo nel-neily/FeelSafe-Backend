@@ -18,7 +18,7 @@ router.post("/addmarkers", (req, res) => {
       longitude,
       color,
       riskType,
-      user: userId, // clé étrangère versl'utilisateur
+      users: userId, // clé étrangère versl'utilisateur
     });
 
     //  Sauvegarde en BDD
@@ -39,14 +39,13 @@ router.post("/addmarkers", (req, res) => {
   }
 });
 
-router.get("/", (req, res) => {
-  Marker.find()
-    .then((markers) => {
-      res.json({ result: true, markers });
-    })
-    .catch((err) => {
-      res.json({ result: false, error: err.message });
-    });
+router.get("/", async (req, res) => {
+  try {
+    const markers = await Marker.find().populate("users");
+    res.json({ result: true, markers });
+  } catch (err) {
+    console.error(err);
+  }
 });
 
 router.delete("/:id", (req, res) => {
