@@ -14,40 +14,39 @@ router.post("/signup", async (req, res) => {
       return res.json({ result: false, error: "Missing fields" });
     }
     // Vérifier si user existe déjà
-    User.findOne({ email }).then((existingUser) => {
-      if (existingUser) {
-        return res.json({ result: false, error: "User already exists" });
-      }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.json({ result: false, error: "User already exists" });
+    }
 
-      // Hash du mot de passe
-      const hash = bcrypt.hashSync(password, 10);
-      // Création du user
-      const newUser = new User({
-        email,
-        password: hash,
-        username: "",
-        token: uid2(32),
-        addresses: [],
-      });
+    // Hash du mot de passe
+    const hash = bcrypt.hashSync(password, 10);
+    // Création du user
+    const newUser = new User({
+      email,
+      password: hash,
+      username: "",
+      token: uid2(32),
+      addresses: [],
+    });
 
-      newUser.save().then((savedUser) => {
-        res.json({
-          result: true,
-          user: {
-            email: savedUser.email,
-            username: savedUser.username,
-            token: savedUser.token,
-            addresses: savedUser.addresses,
-          },
-        });
-      });
+    const savedUser = await newUser.save();
+
+    res.json({
+      result: true,
+      user: {
+        email: savedUser.email,
+        username: savedUser.username,
+        token: savedUser.token,
+        addresses: savedUser.addresses,
+      },
     });
   } catch (error) {
     res.json({ result: false, error: error.message });
   }
 });
 
-router.post("/signin", (req, res) => {
+router.post("/signin", async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -55,24 +54,30 @@ router.post("/signin", (req, res) => {
       return res.json({ result: false, error: "Missing fields" });
     }
 
-    User.findOne({ email }).then((foundUser) => {
-      if (!foundUser) {
-        return res.json({ result: false, error: "User not found" });
-      }
+    const foundUser = await User.findOne({ email });
+    if (!foundUser) {
+      return res.json({ result: false, error: "User not found" });
+    }
 
-      // Comparer mot de passe
-      const isPasswordCorrect = bcrypt.compareSync(
-        password,
-        foundUser.password
-      );
-      console.log("Password correct ?", isPasswordCorrect);
+    // Comparer mot de passe
+    const isPasswordCorrect = bcrypt.compareSync(password, foundUser.password);
+    console.log("Password correct ?", isPasswordCorrect);
 
-      if (!isPasswordCorrect) {
-        return res.json({ result: false, error: "Incorrect password" });
-      }
+    if (!isPasswordCorrect) {
+      return res.json({ result: false, error: "Incorrect password" });
+    }
 
-      // Tout est OK, on renvoie les infos user
-      res.json({
+    const newToken = uid2(32);
+    const implementNewToken = await User.findOneAndUpdate(
+      { token: foundUser.token },
+      { token: newToken },
+      { new: true }
+    );
+
+    // Tout est OK, on renvoie les infos user
+
+    if (!implementNewToken) {
+      return res.json({
         result: true,
         user: {
           email: foundUser.email,
@@ -81,9 +86,65 @@ router.post("/signin", (req, res) => {
           addresses: foundUser.addresses,
         },
       });
+    }
+    const { _email, token, username, addresses } = implementNewToken;
+    res.json({
+      result: true,
+      user: { email: _email, token, username, addresses },
     });
   } catch (error) {
     res.json({ result: false, error: error.message });
+  }
+});
+
+// route POST pour login automatique
+router.post("/auto-signin/:token", async (req, res) => {
+  const tokenFromParams = req.params.token;
+
+  try {
+    const response = await User.findOne({ token: tokenFromParams });
+    if (!response) {
+      res
+        .status(404)
+        .json({ result: false, error: "Token not matching any user" });
+    }
+
+    const newToken = uid2(32);
+    const implementNewToken = await User.findOneAndUpdate(
+      { token: tokenFromParams },
+      { token: newToken },
+      { new: true }
+    );
+
+    // Tout est OK, on renvoie les infos user
+
+    if (!implementNewToken) {
+      return res.json({
+        result: true,
+        user: {
+          email: response.email,
+          username: response.username,
+          token: response.token,
+          addresses: response.addresses,
+        },
+      });
+    }
+    const { _email, token, username, addresses } = implementNewToken;
+    res.json({
+      result: true,
+      user: { email: _email, token, username, addresses },
+    });
+
+    // res.status(200).json({
+    //   result: true,
+    //   user: { email, username, token, addresses },
+    // });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      result: false,
+      error: `Le catch de la requête renvoie une erreur ${error}`,
+    });
   }
 });
 
@@ -112,31 +173,6 @@ router.post("/update/", async (req, res) => {
       const { username } = data;
       res.json({ result: true, username });
     }
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      result: false,
-      error: `Le catch de la requête renvoie une erreur ${error}`,
-    });
-  }
-});
-
-// route POST pour login automatique
-router.post("/auto-signin/:token", async (req, res) => {
-  const tokenFromParams = req.params.token;
-
-  try {
-    const response = await User.findOne({ token: tokenFromParams });
-    if (!response) {
-      res
-        .status(404)
-        .json({ result: false, error: "Token not matching any user" });
-    }
-    const { email, username, token, addresses } = response;
-    res.status(200).json({
-      result: true,
-      user: { email, username, token, addresses },
-    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
