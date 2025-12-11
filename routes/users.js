@@ -68,6 +68,7 @@ router.post("/signin", async (req, res) => {
       return res.json({ result: false, error: "Incorrect password" });
     }
 
+    // Après avoir retrouver le user, générer un nouveau token pour raison de sécurité
     const newToken = uid2(32);
     const implementNewToken = await User.findOneAndUpdate(
       { token: foundUser.token },
@@ -111,11 +112,12 @@ router.post("/auto-signin/:token", async (req, res) => {
   try {
     const response = await User.findOne({ token: tokenFromParams });
     if (!response) {
-      res
+      return res
         .status(404)
         .json({ result: false, error: "Token not matching any user" });
     }
 
+    // Après avoir retrouver le user, générer un nouveau token pour raison de sécurité
     const newToken = uid2(32);
     const implementNewToken = await User.findOneAndUpdate(
       { token: tokenFromParams },
@@ -159,32 +161,48 @@ router.post("/auto-signin/:token", async (req, res) => {
 // route POST pour modifier un champ de User (addresses et username)
 router.post("/update/", async (req, res) => {
   try {
+    // Extrait filter pour la recherche mongoose findOne && updateField qui peut être soit addresses ou username
+    const updateField = req.query;
     const filter = req.body.email;
-    const coords = req.body.coords;
-    const update = req.query;
-    if (Object.hasOwn(update, "addresses")) {
+
+    const coordinates = req.body.coordinates;
+
+    // Vérifie pour updateField === addresses et commence le processus d'ajout d'une nouvelle addresse
+
+    if (Object.hasOwn(updateField, "addresses")) {
       const fetchUser = await User.findOne({ email: filter });
+      console.log(filter, "filtre");
+
       const fetchedAddresses = fetchUser.addresses;
+
+      // Vérifie si l'addresse existe déjà avec son nom
       if (
         fetchedAddresses.some(
-          (addresse) => addresse.address === update.addresses
+          (addresse) => addresse.address === updateField.addresses
         )
       ) {
         return res.json({ result: false, error: "Address already exists" });
       }
+
+      // Update le tableau d'addresses retournées par fetchAddresses pour ajouter une addresse
       const insert = [
         ...fetchedAddresses,
-        { address: update.addresses, coords },
+        { address: updateField.addresses, coords: coordinates },
       ];
+
+      // Retrouve le User, update son tableau d'addresses et renvoit le tout
       const data = await User.findOneAndUpdate(
         { email: filter },
         { addresses: insert },
         { new: true }
       );
-      const { addresses } = data;
-      res.json({ result: true, addresses });
+      res.json({ result: true, addresses: data.addresses });
+
+      // Vérifie pour updateField === username et commence le processus de modification du username
     } else {
-      const data = await User.findOneAndUpdate(filter, update, { new: true });
+      const data = await User.findOneAndUpdate({ email: filter }, updateField, {
+        new: true,
+      });
       const { username } = data;
       res.json({ result: true, username });
     }
@@ -200,11 +218,15 @@ router.post("/update/", async (req, res) => {
 // route DELETE pour supprimer une adresse d'un user
 router.delete("/update/", async (req, res) => {
   try {
+    // Extrait le filter pour chercher un user et l'addresse à supprimer depuis les query params
     const filter = req.body;
     const addresseToDelete = Object.values(req.query)[0];
 
+    // Récupère le User et ses addresses
     const fetchUser = await User.findOne(filter);
     const fetchedAddresses = fetchUser.addresses;
+
+    // Vérifie si l'addresse à supprimer existe
     if (
       !fetchedAddresses.some(
         (addresse) => addresse.address === addresseToDelete
@@ -212,6 +234,8 @@ router.delete("/update/", async (req, res) => {
     ) {
       return res.json({ result: false, error: "Address doesn't exists" });
     }
+
+    // Récupère l'addresse dans le tableau d'addresses pour pouvoir la filtrer par la suite et renvoyer un tableau sans elle
     const findAddress = fetchedAddresses.find(
       (addresse) => addresse.address === addresseToDelete
     );
@@ -234,6 +258,7 @@ router.delete("/update/", async (req, res) => {
   }
 });
 
+// route DELETE de suppression de compte - CETTE ACTION EST DEFINITIVE
 router.delete("/:token", async (req, res) => {
   try {
     const token = req.params.token;
