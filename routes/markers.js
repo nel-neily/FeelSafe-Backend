@@ -57,9 +57,10 @@ router.delete("/:id", (req, res) => {
       if (!marker) {
         return res.json({ result: false, error: "Marker not found" });
       }
+     
 
       // Vérification propriétaire
-      if (marker.user.toString() !== userId) {
+      if (marker.users.toString() !== userId) {
         return res.json({ result: false, error: "Unauthorized" });
       }
 
