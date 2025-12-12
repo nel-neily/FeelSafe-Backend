@@ -4,10 +4,10 @@ var router = express.Router();
 const Marker = require("../models/markers");
 
 function getExpirationDelay(color) {
-  if (color === "red") return 2 * 60 * 60 * 1000; // expire en 2h
-  if (color === "orange") return 24 * 60 * 60 * 1000; // expire en 24h
-  if (color === "blue") return 8 * 60 * 60 * 1000; // expire en 8h
-  if (color === "#A66CFF") return 12 * 60 * 60 * 1000; //  expire en 12h
+  if (color === "#E57373") return 1 * 60 * 60 * 1000; // expire en 1h
+  if (color === "#FFB74D") return 4 * 60 * 60 * 1000; // expire en 4h
+  if (color === "#FFEB3B") return 24 * 60 * 60 * 1000; // expire en 24h
+  if (color === "#A66CFF") return 8 * 60 * 60 * 1000; //  expire en 8h
   return Infinity; //  empêche de supprimer les couleurs inconnues
 }
 
