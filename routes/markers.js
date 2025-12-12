@@ -3,10 +3,18 @@ var router = express.Router();
 
 const Marker = require("../models/markers");
 
+function getExpirationDelay(color) {
+  if (color === "red") return 2 * 60 * 60 * 1000; // expire en 2h
+  if (color === "orange") return 24 * 60 * 60 * 1000; // expire en 24h
+  if (color === "blue") return 8 * 60 * 60 * 1000; // expire en 8h
+  if (color === "#A66CFF") return 12 * 60 * 60 * 1000; //  expire en 12h
+  return Infinity; //  empêche de supprimer les couleurs inconnues
+}
+
 router.post("/addmarkers", (req, res) => {
   try {
     const { latitude, longitude, color, riskType, userId } = req.body;
-
+    console.log("POST /addmarkers OK", req.body);
     //  vérif des champs obligatoires
     if (!latitude || !longitude || !riskType || !userId) {
       return res.json({ result: false, error: "Missing fields" });
@@ -19,6 +27,7 @@ router.post("/addmarkers", (req, res) => {
       color,
       riskType,
       users: userId, // clé étrangère versl'utilisateur
+      createdAt: new Date(),
     });
 
     //  Sauvegarde en BDD
@@ -39,12 +48,36 @@ router.post("/addmarkers", (req, res) => {
   }
 });
 
+
 router.get("/", async (req, res) => {
+  res.set("Cache-Control", "no-store"); // Désactive la mise en cache
   try {
     const markers = await Marker.find().populate("users");
-    res.json({ result: true, markers });
+
+    const now = Date.now();
+    const validMarkers = [];
+    const expiredMarkers = [];
+
+    // Vérifie chaque marker
+    for (let m of markers) {
+      const delay = getExpirationDelay(m.color);
+      const age = now - new Date(m.createdAt).getTime();
+      // Encore valide ? 
+      if (age < delay) {
+        validMarkers.push(m);
+      } else {
+        expiredMarkers.push(m._id);
+      }
+    }
+    // Supprimer les markers expirés
+    if (expiredMarkers.length > 0) {
+      await Marker.deleteMany({ _id: { $in: expiredMarkers } });
+    }
+    // Retourner seulement les markers encore valides
+    return res.json({ result: true, markers: validMarkers });
   } catch (err) {
-    console.error(err);
+    console.error("GET markers error:", err);
+    res.json({ result: false, error: "Server error" });
   }
 });
 
@@ -57,7 +90,6 @@ router.delete("/:id", (req, res) => {
       if (!marker) {
         return res.json({ result: false, error: "Marker not found" });
       }
-     
 
       // Vérification propriétaire
       if (marker.users.toString() !== userId) {
