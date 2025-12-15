@@ -28,6 +28,7 @@ router.post("/signup", async (req, res) => {
       username: "",
       token: uid2(32),
       addresses: [],
+      upvotes: [],
     });
 
     const savedUser = await newUser.save();
@@ -40,6 +41,7 @@ router.post("/signup", async (req, res) => {
         username: savedUser.username,
         token: savedUser.token,
         addresses: savedUser.addresses,
+        upvotes: savedUser.upvotes,
       },
     });
   } catch (error) {
@@ -86,10 +88,11 @@ router.post("/signin", async (req, res) => {
           username: foundUser.username,
           token: foundUser.token,
           addresses: foundUser.addresses,
+          upvotes: foundUser.upvotes,
         },
       });
     }
-    const { token, username, addresses } = implementNewToken;
+    const { token, username, addresses, upvotes } = implementNewToken;
     res.json({
       result: true,
       user: {
@@ -98,6 +101,7 @@ router.post("/signin", async (req, res) => {
         token,
         username,
         addresses,
+        upvotes,
       },
     });
   } catch (error) {
@@ -136,13 +140,21 @@ router.post("/auto-signin/:token", async (req, res) => {
           username: response.username,
           token: response.token,
           addresses: response.addresses,
+          upvotes: response.upvotes,
         },
       });
     }
-    const { email, token, username, addresses } = implementNewToken;
+    const { email, token, username, addresses, upvotes } = implementNewToken;
     res.json({
       result: true,
-      user: { id: implementNewToken._id, email, token, username, addresses },
+      user: {
+        id: implementNewToken._id,
+        email,
+        token,
+        username,
+        addresses,
+        upvotes,
+      },
     });
 
     // res.status(200).json({
