@@ -11,6 +11,7 @@ const userSchema = mongoose.Schema({
   username: String,
   token: String,
   addresses: [addressesSchema],
+  upvotes: [String],
 });
 
 const User = mongoose.model("users", userSchema);

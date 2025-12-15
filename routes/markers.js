@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 
 const Marker = require("../models/markers");
+const User = require("../models/users");
 
 function getExpirationDelay(color) {
   if (color === "#E57373") return 1 * 60 * 60 * 1000; // expire en 1h
@@ -28,6 +29,7 @@ router.post("/addmarkers", (req, res) => {
       riskType,
       users: userId, // clé étrangère versl'utilisateur
       createdAt: new Date(),
+      upvotes: 0,
     });
 
     //  Sauvegarde en BDD
@@ -48,11 +50,10 @@ router.post("/addmarkers", (req, res) => {
   }
 });
 
-
 router.get("/", async (req, res) => {
   res.set("Cache-Control", "no-store"); // Désactive la mise en cache
   try {
-    const markers = await Marker.find().populate("users");
+    const markers = await Marker.find();
 
     const now = Date.now();
     const validMarkers = [];
@@ -62,7 +63,7 @@ router.get("/", async (req, res) => {
     for (let m of markers) {
       const delay = getExpirationDelay(m.color);
       const age = now - new Date(m.createdAt).getTime();
-      // Encore valide ? 
+      // Encore valide ?
       if (age < delay) {
         validMarkers.push(m);
       } else {
@@ -104,6 +105,41 @@ router.delete("/:id", (req, res) => {
     .catch((err) => {
       res.json({ result: false, error: err.message });
     });
+});
+
+router.post("/update-upvote/:token", async (req, res) => {
+  try {
+    const _id = req.body._id;
+    const token = req.params.token;
+    const user = await User.findOne({ token });
+    const m = await Marker.findOne({ _id });
+    if (!user.upvotes || !user.upvotes.some((markerId) => markerId === _id)) {
+      const marker = await Marker.findOneAndUpdate(
+        { _id },
+        { upvotes: m.upvotes + 1 },
+        { new: true }
+      );
+      user.upvotes.push(_id);
+      await User.findOneAndUpdate(
+        { token },
+        { upvotes: user.upvotes },
+        { new: true }
+      );
+
+      res.json({ result: true, marker });
+    } else {
+      const marker = await Marker.findOneAndUpdate(
+        { _id },
+        { upvotes: m.upvotes - 1 },
+        { new: true }
+      );
+      const newFilter = user.upvotes.filter((id) => id !== _id);
+      await User.findOneAndUpdate({ token }, { upvotes: newFilter });
+      res.json({ result: true, marker });
+    }
+  } catch (err) {
+    console.error(err);
+  }
 });
 
 module.exports = router;
