@@ -1,5 +1,6 @@
 var express = require("express");
 var router = express.Router();
+const { getPolygon } = require("../utils/function");
 
 const Marker = require("../models/markers");
 const User = require("../models/users");
@@ -30,6 +31,10 @@ router.post("/addmarkers", (req, res) => {
       users: userId, // clé étrangère versl'utilisateur
       createdAt: new Date(),
       upvotes: 0,
+      polygon: {
+        type: "Polygon",
+        coordinates: getPolygon(latitude, longitude),
+      },
     });
 
     //  Sauvegarde en BDD
