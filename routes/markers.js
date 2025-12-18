@@ -18,7 +18,7 @@ router.post("/addmarkers", (req, res) => {
     const { latitude, longitude, color, riskType, userId } = req.body;
     console.log("POST /addmarkers OK", req.body);
     //  vérif des champs obligatoires
-    if (!latitude || !longitude || !riskType || !userId) {
+    if (!latitude || !longitude || !riskType) {
       return res.json({ result: false, error: "Missing fields" });
     }
 
@@ -28,7 +28,7 @@ router.post("/addmarkers", (req, res) => {
       longitude,
       color,
       riskType,
-      users: userId, // clé étrangère versl'utilisateur
+      users: userId ? userId : null, // clé étrangère versl'utilisateur
       createdAt: new Date(),
       upvotes: 1,
       polygon: {
