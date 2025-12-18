@@ -4,3 +4,5 @@ mongoose
   .connect(CONNECTION_STRING)
   .then(() => console.log("DB connected"))
   .catch((err) => console.error("probleme de connection a la db", err));
+
+console.log("CONNECTION_STRING is defined ?", !!process.env.CONNECTION_STRING);
