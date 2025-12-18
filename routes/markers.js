@@ -30,7 +30,7 @@ router.post("/addmarkers", (req, res) => {
       riskType,
       users: userId, // clé étrangère versl'utilisateur
       createdAt: new Date(),
-      upvotes: 0,
+      upvotes: 1,
       polygon: {
         type: "Polygon",
         coordinates: getPolygon(latitude, longitude),
